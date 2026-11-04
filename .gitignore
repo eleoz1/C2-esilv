@@ -1,0 +1,17 @@
+# Environnement virtuel
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Configuration locale
+.env
+
+# Fichiers temporaires
+*.log
+
+# Données de test sensibles
+captures/
+*.dump
