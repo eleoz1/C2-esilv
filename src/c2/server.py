@@ -3,27 +3,31 @@ import socket
 HOST = "0.0.0.0"
 PORT = 5000
 
-serveur = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
 try:
-    serveur.bind((HOST, PORT))
-    serveur.listen(1)
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as serveur:
+        serveur.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        serveur.bind((HOST, PORT))
+        serveur.listen(5)
 
-    print("Serveur démarré")
-    print("En attente d'une connexion...")
+        print("Serveur demarre")
+        print("En attente de connexions...")
 
-    connexion, adresse = serveur.accept()
+        while True:
+            connexion, adresse = serveur.accept()
 
-    with connexion:
-        print("Client connecté :", adresse)
+            with connexion:
+                print(f"\nClient connecte : {adresse}")
 
-        message = connexion.recv(1024).decode("utf-8")
-        print("Message reçu :", message)
+                message = connexion.recv(1024)
 
-        connexion.sendall(b"Message bien recu")
+                if message:
+                    print("Message recu :", message.decode("utf-8"))
+                    connexion.sendall(b"Message bien recu")
+                else:
+                    print("Client deconnecte sans message")
+
+except KeyboardInterrupt:
+    print("\nArret du serveur")
 
 except OSError as erreur:
-    print("Erreur réseau :", erreur)
-
-finally:
-    serveur.close()
+    print("Erreur reseau :", erreur)
