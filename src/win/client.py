@@ -3,51 +3,58 @@ import socket
 import platform
 import json
 
-# Configuration du serveur Kali
 HOST = "172.20.1.129"
 PORT = 5000
 
 
-def executer_diagnostic(commande, adresse_ip):
-    """Execute uniquement des diagnostics autorises."""
+def traiter_demande(demande):
+    """Prepare les diagnostics autorises."""
 
-    commande = commande.strip().upper()
+    if not isinstance(demande, dict):
+        return {
+            "type": "error",
+            "message": "Format de demande invalide"
+        }
+
+    if demande.get("type") != "diagnostic_request":
+        return {
+            "type": "error",
+            "message": "Type de demande invalide"
+        }
+
+    commande = str(demande.get("commande", "")).strip().upper()
 
     if commande == "INFO":
         resultat = {
-            "commande": "INFO",
-            "nom_pc": platform.node(),
-            "systeme": platform.system(),
-            "version": platform.release()
+            "hostname": platform.node(),
+            "system": platform.system(),
+            "release": platform.release()
         }
 
-    elif commande == "IP":
+    elif commande == "NETWORK":
         resultat = {
-            "commande": "IP",
-            "adresse_ip": adresse_ip
+            "message": "Diagnostic reseau disponible"
         }
 
-    elif commande == "PING":
+    elif commande == "STATUS":
         resultat = {
-            "commande": "PING",
             "message": "Client Windows actif"
         }
 
     else:
-        resultat = {
-            "commande": commande,
-            "erreur": "Commande non autorisee"
+        return {
+            "type": "error",
+            "message": "Commande non autorisee"
         }
 
-    return json.dumps(resultat, ensure_ascii=False)
+    return {
+        "type": "diagnostic_response",
+        "commande": commande,
+        "resultat": resultat
+    }
 
 
 def main():
-    print("=== Informations du client Windows ===")
-    print("Nom du PC :", platform.node())
-    print("Systeme :", platform.system())
-    print("Version :", platform.release())
-
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client:
             client.settimeout(5)
@@ -55,45 +62,52 @@ def main():
 
             adresse_ip = client.getsockname()[0]
 
-            print("Adresse IP locale :", adresse_ip)
-            print("Connecte au serveur Kali")
+            informations = {
+                "hostname": platform.node(),
+                "system": platform.system(),
+                "release": platform.release(),
+                "architecture": platform.machine(),
+                "interfaces": [
+                    {
+                        "interface": "connexion_principale",
+                        "ipv4": adresse_ip
+                    }
+                ]
+            }
 
-            # Test de communication TCP existant
-            client.sendall(b"Bonjour depuis Windows")
+            client.sendall(
+                json.dumps(informations).encode("utf-8")
+            )
 
-            reponse = client.recv(1024)
+            print("Connexion au serveur Kali reussie.")
+            print("Informations transmises au serveur.")
+
+            reponse = client.recv(4096)
 
             if reponse:
-                print(
-                    "Reponse du serveur :",
-                    reponse.decode("utf-8")
-                )
+                confirmation = json.loads(reponse.decode("utf-8"))
+
+                if confirmation.get("status") == "ok":
+                    print("Reception confirmee par Kali.")
+                else:
+                    print("Reponse inattendue du serveur.")
             else:
                 print("Le serveur a ferme la connexion.")
+
+    except ConnectionRefusedError:
+        print("Erreur : connexion refusee par Kali.")
 
     except socket.timeout:
         print("Erreur : le serveur ne repond pas.")
 
-    except ConnectionRefusedError:
-        print("Erreur : connexion refusee. Verifiez Kali.")
+    except json.JSONDecodeError:
+        print("Erreur : reponse JSON invalide.")
 
     except OSError as erreur:
         print("Erreur reseau :", erreur)
 
-    print("=== Fin du programme ===")
+    print("Fin du programme.")
 
 
 if __name__ == "__main__":
-    # Tests locaux de l'interpreteur
-    print("=== Tests des diagnostics ===")
-
-    for commande in ["INFO", "IP", "PING", "TEST"]:
-        resultat = executer_diagnostic(
-            commande,
-            "172.20.1.128"
-        )
-        print(resultat)
-
-    print()
-
     main()
