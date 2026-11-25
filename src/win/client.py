@@ -6,8 +6,6 @@ import json
 HOST = "172.20.1.129"
 PORT = 5000
 
-
-def traiter_demande(demande):
     """Prepare les diagnostics autorises."""
 
     if not isinstance(demande, dict):
