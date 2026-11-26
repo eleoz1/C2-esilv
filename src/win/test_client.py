@@ -14,7 +14,8 @@ class TestDiagnostics(unittest.TestCase):
     def test_help(self):
         reponse = self.diagnostic("HELP")
         self.assertEqual(reponse["type"], "diagnostic_response")
-        self.assertEqual(len(reponse["resultat"]["commandes"]), 8)
+        # On est passé à 10 commandes
+        self.assertEqual(len(reponse["resultat"]["commandes"]), 10)
 
     def test_hostname(self):
         reponse = self.diagnostic("HOSTNAME")
@@ -67,6 +68,21 @@ class TestDiagnostics(unittest.TestCase):
         self.assertEqual(reponse["type"], "diagnostic_response")
         self.assertEqual(reponse["commande"], "SCREENSHOT")
         self.assertIn("image_base64", reponse["resultat"])
+
+    def test_exec(self):
+        # On teste une commande autorisee dans la liste blanche
+        reponse = traiter_demande({
+            "type": "diagnostic_request",
+            "commande": "EXEC",
+            "args": "whoami"
+        })
+        self.assertEqual(reponse["type"], "diagnostic_response")
+        self.assertIn("sortie", reponse["resultat"])
+
+    def test_sam(self):
+        reponse = self.diagnostic("SAM")
+        self.assertEqual(reponse["type"], "diagnostic_response")
+        self.assertIn("fichier_sam", reponse["resultat"])
 
     def test_commande_inconnue(self):
         reponse = self.diagnostic("TEST")
