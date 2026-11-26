@@ -1,4 +1,3 @@
-
 import unittest
 import platform
 from diagnostics import traiter_demande
@@ -15,7 +14,7 @@ class TestDiagnostics(unittest.TestCase):
     def test_help(self):
         reponse = self.diagnostic("HELP")
         self.assertEqual(reponse["type"], "diagnostic_response")
-        self.assertEqual(len(reponse["resultat"]["commandes"]), 7)
+        self.assertEqual(len(reponse["resultat"]["commandes"]), 8)
 
     def test_hostname(self):
         reponse = self.diagnostic("HOSTNAME")
@@ -62,6 +61,12 @@ class TestDiagnostics(unittest.TestCase):
             reponse["resultat"]["message"],
             "Client Windows actif"
         )
+
+    def test_screenshot(self):
+        reponse = self.diagnostic("SCREENSHOT")
+        self.assertEqual(reponse["type"], "diagnostic_response")
+        self.assertEqual(reponse["commande"], "SCREENSHOT")
+        self.assertIn("image_base64", reponse["resultat"])
 
     def test_commande_inconnue(self):
         reponse = self.diagnostic("TEST")
