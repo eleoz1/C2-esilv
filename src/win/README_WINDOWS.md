@@ -12,6 +12,8 @@ Développer un client Windows capable de communiquer avec un serveur Kali Linux 
 - PowerShell
 - VMware Workstation
 - Git et GitHub
+- Unittest
+- Winreg
 
 ## 3. Organisation des fichiers
 
@@ -19,8 +21,9 @@ Développer un client Windows capable de communiquer avec un serveur Kali Linux 
 |---|---|
 | `client.py` | Connexion TCP, transmission des informations système et gestion des erreurs. |
 | `diagnostics.py` | Gestion des sept diagnostics locaux autorisés. |
-| `test_client.py` | Validation des diagnostics et des demandes incorrectes. |
+| `test_client.py` | Exécution des 15 tests unitaires automatisés. |
 | `test_network.py` | Récupération des adresses IPv4 hors localhost. |
+| `test_registre.py` | Lecture locale d'une clé de registre Windows non sensible. |
 | `README_WINDOWS.md` | Documentation du client Windows. |
 
 ## 4. Configuration réseau
@@ -47,7 +50,7 @@ Développer un client Windows capable de communiquer avec un serveur Kali Linux 
 | INFO | Récupération des informations système. |
 | STATUS | Vérification de l'état du client. |
 
-Les commandes inconnues ou invalides sont refusées.
+Les commandes inconnues ou invalides sont refusées. Les diagnostics sont exécutés localement.
 
 ## 6. Gestion des erreurs
 
@@ -60,8 +63,39 @@ Le programme prévoit la gestion des erreurs suivantes :
 - Format de demande invalide.
 - Type de demande invalide.
 - Commande absente ou non autorisée.
+- Clé de registre introuvable.
+- Accès au registre refusé.
 
-## 7. Tests réalisés
+## 7. Lecture du registre Windows
+
+Le script `test_registre.py` utilise la bibliothèque Python `winreg` pour lire une clé de registre de test.
+
+| Paramètre | Valeur |
+|---|---|
+| Emplacement | `HKEY_CURRENT_USER\Software\ProjetESILV` |
+| Nom | Test |
+| Type | REG_SZ |
+| Valeur | Validation |
+| Résultat | Lecture réussie |
+
+La lecture a été validée localement dans la machine virtuelle Windows, indépendamment du serveur C2.
+
+## 8. Tests réalisés
+
+### 8.1. Tests unitaires
+
+Les tests unitaires sont automatisés à l'aide de la bibliothèque `unittest`.
+
+Ils permettent de vérifier les sept diagnostics disponibles ainsi que huit cas d'erreur ou cas particuliers.
+
+| Environnement | Tests réussis | Temps d'exécution |
+|---|---|---|
+| Ordinateur principal | 15/15 | 0,241 s |
+| VM Windows 11 | 15/15 | 0,155 s |
+
+Taux de réussite des tests unitaires : 100 % sur les deux environnements.
+
+### 8.2. Tests complémentaires
 
 | Test | Résultat |
 |---|---|
@@ -70,27 +104,37 @@ Le programme prévoit la gestion des erreurs suivantes :
 | Ping Kali vers Windows | Échec |
 | Connexion TCP sur le port 8000 | Réussi |
 | Transfert JSON via HTTP sur le port 5000 | Réussi |
-| Diagnostics sur le poste principal | 7/7 |
-| Gestion des erreurs locales | 4/4 |
-| Tests dans la VM Windows | 11/11 |
-| Création et lecture d'une clé de registre de démonstration | Réussi |
+| Récupération des adresses IPv4 hors localhost | Réussi |
+| Création d'une clé de registre de test | Réussi |
+| Lecture du registre avec PowerShell | Réussi |
+| Lecture du registre avec Python | Réussi |
 | Capture d'écran manuelle | Réussi |
-| Exécution manuelle du script de test de démarrage | Réussi |
+| Exécution manuelle du script de démarrage | Réussi |
 
 Les tests HTTP ont été réalisés indépendamment du serveur C2 afin de vérifier la connectivité réseau et le transfert de données.
 
-## 8. Limites actuelles
+## 9. Limites actuelles
 
 Les diagnostics sont exécutés localement. Leur déclenchement à distance n'est pas implémenté.
 
-Le démarrage automatique du client, l'exécution distante de commandes Shell/PowerShell, les captures d'écran automatisées et la récupération de la base SAM ne sont pas réalisés.
+Les fonctionnalités suivantes restent non réalisées :
 
-L'intégration finale du client Windows avec le serveur commun reste à valider. L'adresse du serveur dans le client TCP doit également être actualisée.
+- Démarrage automatique du client.
+- Exécution distante de commandes Shell/PowerShell.
+- Capture d'écran automatisée.
+- Récupération de la base SAM.
+- Récupération distante du registre.
 
-## 9. Conclusion
+L'intégration finale du client Windows avec le serveur commun reste à valider. L'adresse du serveur configurée dans le client TCP doit également être actualisée.
 
-Les diagnostics Windows, la gestion des demandes incorrectes et la connectivité réseau ont été validés dans un environnement virtualisé.
+## 10. Conclusion
 
-Les onze cas de test locaux ont produit les résultats attendus sur le poste principal et dans la VM Windows. Les contributions sont sauvegardées sur GitHub dans la branche `dev-samantha`.
+Le développement du client Windows a permis de mettre en place les bases de la communication TCP, de la transmission JSON, des diagnostics système et de la gestion des erreurs.
 
-La validation du protocole applicatif commun et la mise en commun des contributions restent nécessaires.
+Les 15 tests unitaires ont été validés sur le poste principal et dans la machine virtuelle Windows, avec un taux de réussite de 100 %.
+
+La lecture locale du registre Windows a également été réalisée avec succès à l'aide de Python.
+
+Les contributions sont sauvegardées sur GitHub dans la branche `dev-samantha`.
+
+La validation du protocole applicatif commun, la mise en commun des contributions et les fonctionnalités restantes sont nécessaires pour satisfaire l'intégralité du cahier des charges.
