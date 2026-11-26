@@ -1,112 +1,63 @@
-
 import socket
-import platform
 import json
+import platform
+import sys
+from diagnostics import traiter_demande
 
-HOST = "172.20.1.129"
-PORT = 5000
+HOST = sys.argv[1] if len(sys.argv) > 1 else "172.20.1.131"
+PORT = int(sys.argv[2]) if len(sys.argv) > 2 else 5000
 
 
-def traiter_demande(demande):
-    """Prepare les diagnostics autorises."""
+def envoyer(sock, obj):
+    sock.sendall((json.dumps(obj) + "\n").encode("utf-8"))
 
-    if not isinstance(demande, dict):
-        return {
-            "type": "error",
-            "message": "Format de demande invalide"
-        }
 
-    if demande.get("type") != "diagnostic_request":
-        return {
-            "type": "error",
-            "message": "Type de demande invalide"
-        }
-
-    commande = str(demande.get("commande", "")).strip().upper()
-
-    if commande == "INFO":
-        resultat = {
-            "hostname": platform.node(),
-            "system": platform.system(),
-            "release": platform.release()
-        }
-
-    elif commande == "NETWORK":
-        resultat = {
-            "message": "Diagnostic reseau disponible"
-        }
-
-    elif commande == "STATUS":
-        resultat = {
-            "message": "Client Windows actif"
-        }
-
-    else:
-        return {
-            "type": "error",
-            "message": "Commande non autorisee"
-        }
-
-    return {
-        "type": "diagnostic_response",
-        "commande": commande,
-        "resultat": resultat
-    }
+def recevoir(sock):
+    buffer = b""
+    while not buffer.endswith(b"\n"):
+        morceau = sock.recv(4096)
+        if not morceau:
+            return None
+        buffer += morceau
+    return json.loads(buffer.decode("utf-8"))
 
 
 def main():
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client:
-            client.settimeout(5)
             client.connect((HOST, PORT))
+            print(f"Connecte a {HOST}:{PORT}")
 
-            adresse_ip = client.getsockname()[0]
-
-            informations = {
+            # 1. Handshake d'identification (compatible server.py de Leo)
+            envoyer(client, {
                 "hostname": platform.node(),
                 "system": platform.system(),
+                "os": platform.system(),
                 "release": platform.release(),
                 "architecture": platform.machine(),
-                "interfaces": [
-                    {
-                        "interface": "connexion_principale",
-                        "ipv4": adresse_ip
-                    }
-                ]
-            }
+                "interfaces": [{"interface": "principale",
+                                "ip": client.getsockname()[0]}]
+            })
+            confirmation = recevoir(client)
+            print("Confirmation :", confirmation)
 
-            client.sendall(
-                json.dumps(informations).encode("utf-8")
-            )
-
-            print("Connexion au serveur Kali reussie.")
-            print("Informations transmises au serveur.")
-
-            reponse = client.recv(4096)
-
-            if reponse:
-                confirmation = json.loads(reponse.decode("utf-8"))
-
-                if confirmation.get("status") == "ok":
-                    print("Reception confirmee par Kali.")
-                else:
-                    print("Reponse inattendue du serveur.")
-            else:
-                print("Le serveur a ferme la connexion.")
+            # 2. Boucle de commandes
+            while True:
+                demande = recevoir(client)
+                if demande is None:
+                    print("Serveur deconnecte.")
+                    break
+                reponse = traiter_demande(demande)
+                envoyer(client, reponse)
 
     except ConnectionRefusedError:
-        print("Erreur : connexion refusee par Kali.")
-
+        print("Erreur : connexion refusee.")
     except socket.timeout:
-        print("Erreur : le serveur ne repond pas.")
-
+        print("Erreur : delai depasse.")
     except json.JSONDecodeError:
-        print("Erreur : reponse JSON invalide.")
-
+        print("Erreur : JSON invalide.")
     except OSError as erreur:
         print("Erreur reseau :", erreur)
-
-    print("Fin du programme.")
 
 
 if __name__ == "__main__":
