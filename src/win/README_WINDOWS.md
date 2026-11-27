@@ -1,14 +1,14 @@
 # Client Windows – Projet C2
 
 ## 1. Objectif
-Développer un client Windows capable de communiquer avec un serveur Kali Linux à travers une connexion TCP et de transmettre des informations au format JSON dans un environnement de laboratoire isolé.
+Développer un client Windows capable de communiquer avec un serveur Kali Linux via une connexion TCP, d'envoyer des informations système au format JSON et d'exécuter des diagnostics à distance dans un environnement de laboratoire isolé.
 
 ## 2. Technologies utilisées
-- Python
+- Python (version 3.13 ou 3.14)
 - Socket TCP
 - JSON
 - PowerShell
-- Pillow (pour les captures d'écran)
+- Pillow (pour la capture d'écran)
 - VMware Workstation
 - Git et GitHub
 - Unittest
@@ -18,8 +18,8 @@ Développer un client Windows capable de communiquer avec un serveur Kali Linux 
 | Fichier | Description |
 |---|---|
 | `client.py` | Connexion TCP, boucle de commandes, transmission des informations et gestion des erreurs. |
-| `diagnostics.py` | Gestion des 8 diagnostics locaux autorisés (dont la capture d'écran). |
-| `test_client.py` | Exécution des 16 tests unitaires automatisés. |
+| `diagnostics.py` | Gestion des 10 diagnostics locaux autorisés (dont `EXEC` et `SAM`). |
+| `test_client.py` | Exécution des 18 tests unitaires automatisés. |
 | `test_network.py` | Récupération des adresses IPv4 hors localhost. |
 | `test_registre.py` | Lecture locale d'une clé de registre Windows non sensible. |
 | `README_WINDOWS.md` | Documentation du client Windows. |
@@ -45,14 +45,14 @@ Développer un client Windows capable de communiquer avec un serveur Kali Linux 
 | NETWORK | Récupération des adresses IPv4. |
 | INFO | Récupération des informations système. |
 | STATUS | Vérification de l'état du client. |
-| SCREENSHOT | Capture de l'écran de la VM encodée en base64. |
-
-Les commandes inconnues ou invalides sont refusées. Les diagnostics sont exécutés localement.
+| SCREENSHOT | Capture de l'écran encodée en base64. |
+| EXEC | Exécution sécurisée de commandes shell (liste blanche). |
+| SAM | Étude de la base SAM et des utilisateurs locaux (sans extraction de hashes). |
 
 ## 6. Démarrage automatique
 Le client est configuré pour démarrer automatiquement au lancement de la session Windows.
 - Un raccourci vers la commande de lancement a été placé dans le dossier `shell:startup`.
-- Ainsi, dès l'ouverture de la VM Windows, le client s'exécute et tente de se connecter au serveur C2.
+- Dès l'ouverture de la VM Windows, le client s'exécute et tente de se connecter au serveur C2.
 
 ## 7. Gestion des erreurs
 Le programme prévoit la gestion des erreurs suivantes :
@@ -66,9 +66,10 @@ Le programme prévoit la gestion des erreurs suivantes :
 - Clé de registre introuvable.
 - Accès au registre refusé.
 - Erreur lors de la capture d'écran.
+- Commande shell non autorisée.
 
-## 8. Lecture du registre Windows
-Le script `test_registre.py` utilise la bibliothèque Python `winreg` pour lire une clé de registre de test.
+## 8. Lecture du registre Windows et SAM
+Le script `test_registre.py` utilise la bibliothèque `winreg` pour lire une clé de registre de test.
 | Paramètre | Valeur |
 |---|---|
 | Emplacement | `HKEY_CURRENT_USER\Software\ProjetESILV` |
@@ -76,17 +77,16 @@ Le script `test_registre.py` utilise la bibliothèque Python `winreg` pour lire 
 | Type | REG_SZ |
 | Valeur | Validation |
 | Résultat | Lecture réussie |
-La lecture a été validée localement dans la machine virtuelle Windows, indépendamment du serveur C2.
+
+Concernant la commande `SAM`, elle vérifie l'existence du fichier `C:\Windows\System32\config\SAM`, liste les utilisateurs locaux via le registre, et documente le fait que les hashes ne sont pas extraits, conformément au cadre éthique du TP.
 
 ## 9. Tests réalisés
 ### 9.1. Tests unitaires
 Les tests unitaires sont automatisés à l'aide de la bibliothèque `unittest`.
-Ils permettent de vérifier les huit diagnostics disponibles ainsi que les cas d'erreur.
-
 | Environnement | Tests réussis | Temps d'exécution |
 |---|---|---|
-| Ordinateur principal | 16/16 | 0,590 s |
-| VM Windows 11 | 16/16 | À valider |
+| Ordinateur principal | 18/18 | ~0,6 s |
+| VM Windows 11 | 18/18 | ~0,6 s |
 
 Taux de réussite des tests unitaires : 100 %.
 
@@ -98,16 +98,17 @@ Taux de réussite des tests unitaires : 100 %.
 | Connexion TCP avec serveur de test | Réussi |
 | Récupération des adresses IPv4 hors localhost | Réussi |
 | Création d'une clé de registre de test | Réussi |
-| Lecture du registre avec PowerShell | Réussi |
 | Lecture du registre avec Python | Réussi |
 | Capture d'écran et encodage base64 | Réussi |
+| Exécution de commandes shell (EXEC) | Réussi |
+| Étude de la base SAM | Réussi |
 | Exécution manuelle du script de démarrage | Réussi |
 
 ## 10. Limites actuelles
-- L'intégration finale avec le serveur de production (Kali) dépend de la boucle de commandes implémentée côté serveur.
-- L'exécution de commandes Shell/PowerShell avec liste blanche n'est pas implémentée (les diagnostics sont des fonctions Python). 
-- La récupération de la base SAM n'est pas réalisée (conformément à la version sécurisée du sujet).
+- L'exécution de commandes `EXEC` est restreinte à une liste blanche pour des raisons de sécurité.
+- L'extraction des hashes de la base SAM n'est pas réalisée (conformément au cadre du TP).
+- L'intégration finale dépend du serveur unifié.
 
 ## 11. Conclusion
-Le développement du client Windows a permis de mettre en place les bases de la communication TCP, de la transmission JSON, des diagnostics système, de la capture d'écran et de la gestion des erreurs.
-Les 16 tests unitaires ont été validés. Le client est prêt pour l'intégration finale.
+Le développement du client Windows a permis de mettre en place une communication TCP robuste, des diagnostics système, des captures d'écran, l'exécution sécurisée de commandes et l'étude de la base SAM.
+Les 18 tests unitaires ont été validés. Le client est prêt pour l'intégration finale.
